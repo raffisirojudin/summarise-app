@@ -16,14 +16,30 @@ from docx import Document
 # KONFIGURASI HALAMAN & KONSTANTA
 # ============================================================
 st.set_page_config(page_title="SummaRise", page_icon="📝", layout="centered")
-st.title("📝 SummaRise")
-st.caption("Ringkas, terjemahkan, dan tanya-jawab dengan teks/dokumen kamu menggunakan Gemini API")
 
 MODEL_NAME = "gemini-2.5-flash-lite"
+APP_VERSION = "v1.1"
 
 # Harga gemini-2.5-flash-lite per 1 juta token (USD) -- untuk estimasi biaya saja
 PRICE_INPUT_PER_M = 0.10
 PRICE_OUTPUT_PER_M = 0.40
+
+
+# ============================================================
+# HEADER
+# ============================================================
+st.title("📝 SummaRise")
+st.caption("Ringkas, terjemahkan, dan tanya-jawab dengan teks/dokumen kamu — didukung Google Gemini API")
+
+badge_col1, badge_col2, badge_col3 = st.columns(3)
+with badge_col1:
+    st.badge("Gemini 2.5 Flash-Lite", icon="✨", color="violet")
+with badge_col2:
+    st.badge("Tier Gratis", icon="💚", color="green")
+with badge_col3:
+    st.badge(APP_VERSION, icon="🚀", color="blue")
+
+st.divider()
 
 
 # ============================================================
@@ -160,6 +176,10 @@ def add_to_history(kind, input_text, output_text, usage, cost):
 secret_key = get_secret_api_key()
 
 with st.sidebar:
+    st.markdown("### 📝 SummaRise")
+    st.caption("AI Text Summarizer & Assistant")
+    st.divider()
+
     st.header("⚙️ Konfigurasi")
     if secret_key:
         api_key = secret_key
@@ -191,36 +211,38 @@ with st.sidebar:
 # SUMBER TEKS (dipakai bersama oleh semua tab di bawah)
 # ============================================================
 st.subheader("📄 Sumber Teks")
-source_mode = st.radio(
-    "Pilih sumber teks", ["Paste Teks", "Upload File"], horizontal=True, key="source_mode_radio"
-)
 
-source_text = ""
-if source_mode == "Paste Teks":
-    source_text = st.text_area(
-        "Masukkan teks (artikel/berita)",
-        height=200,
-        placeholder="Paste teks panjang di sini...",
-        key="source_text_input",
+with st.container(border=True):
+    source_mode = st.radio(
+        "Pilih sumber teks", ["Paste Teks", "Upload File"], horizontal=True, key="source_mode_radio"
     )
-else:
-    uploaded_file = st.file_uploader(
-        "Upload file (PDF, DOCX, atau TXT)", type=["pdf", "docx", "txt"], key="file_uploader"
-    )
-    if uploaded_file:
-        with st.spinner("Mengekstrak teks dari file..."):
-            source_text = extract_text(uploaded_file)
-        if source_text.strip():
-            with st.expander("👀 Lihat teks hasil ekstraksi"):
-                preview_text = source_text[:3000] + ("..." if len(source_text) > 3000 else "")
-                st.text(preview_text)
-        else:
-            st.warning("Tidak ada teks yang bisa diekstrak dari file ini.")
 
-if source_text.strip():
-    word_count = len(source_text.split())
-    char_count = len(source_text)
-    st.caption(f"📝 {word_count:,} kata · {char_count:,} karakter")
+    source_text = ""
+    if source_mode == "Paste Teks":
+        source_text = st.text_area(
+            "Masukkan teks (artikel/berita)",
+            height=200,
+            placeholder="Paste teks panjang di sini...",
+            key="source_text_input",
+        )
+    else:
+        uploaded_file = st.file_uploader(
+            "Upload file (PDF, DOCX, atau TXT)", type=["pdf", "docx", "txt"], key="file_uploader"
+        )
+        if uploaded_file:
+            with st.spinner("Mengekstrak teks dari file..."):
+                source_text = extract_text(uploaded_file)
+            if source_text.strip():
+                with st.expander("👀 Lihat teks hasil ekstraksi"):
+                    preview_text = source_text[:3000] + ("..." if len(source_text) > 3000 else "")
+                    st.text(preview_text)
+            else:
+                st.warning("Tidak ada teks yang bisa diekstrak dari file ini.")
+
+    if source_text.strip():
+        word_count = len(source_text.split())
+        char_count = len(source_text)
+        st.caption(f"📝 {word_count:,} kata · {char_count:,} karakter")
 
 st.divider()
 
@@ -264,16 +286,17 @@ with tab_ringkas:
 
     if st.session_state.last_summary:
         result = st.session_state.last_summary
-        st.subheader("📋 Hasil Ringkasan")
-        st.write(result["text"])
-        show_usage(result["usage"], result["cost"])
-        st.download_button(
-            "📥 Download Ringkasan (.txt)",
-            data=result["text"],
-            file_name=f"ringkasan_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt",
-            mime="text/plain",
-            key="dl_ringkas",
-        )
+        with st.container(border=True):
+            st.subheader("📋 Hasil Ringkasan")
+            st.write(result["text"])
+            show_usage(result["usage"], result["cost"])
+            st.download_button(
+                "📥 Download Ringkasan (.txt)",
+                data=result["text"],
+                file_name=f"ringkasan_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt",
+                mime="text/plain",
+                key="dl_ringkas",
+            )
 
 # ---------- TAB 2: TERJEMAHKAN ----------
 with tab_translate:
@@ -303,16 +326,17 @@ with tab_translate:
 
     if st.session_state.last_translation:
         result = st.session_state.last_translation
-        st.subheader(f"🌐 Hasil Terjemahan ({result['lang']})")
-        st.write(result["text"])
-        show_usage(result["usage"], result["cost"])
-        st.download_button(
-            "📥 Download Terjemahan (.txt)",
-            data=result["text"],
-            file_name=f"terjemahan_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt",
-            mime="text/plain",
-            key="dl_translate",
-        )
+        with st.container(border=True):
+            st.subheader(f"🌐 Hasil Terjemahan ({result['lang']})")
+            st.write(result["text"])
+            show_usage(result["usage"], result["cost"])
+            st.download_button(
+                "📥 Download Terjemahan (.txt)",
+                data=result["text"],
+                file_name=f"terjemahan_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt",
+                mime="text/plain",
+                key="dl_translate",
+            )
 
 # ---------- TAB 3: TANYA JAWAB ----------
 with tab_qa:
@@ -397,3 +421,9 @@ with tab_history:
                     mime="text/plain",
                     key=f"dl_hist_{i}",
                 )
+
+# ============================================================
+# FOOTER
+# ============================================================
+st.divider()
+st.caption(f"📝 SummaRise {APP_VERSION} · Dibangun dengan Streamlit & Google Gemini API · Proyek pembelajaran AI API")
