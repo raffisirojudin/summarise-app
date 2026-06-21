@@ -53,6 +53,10 @@ def init_session_state():
         "total_output_tokens": 0,
         "last_summary": None,
         "last_translation": None,
+        "last_sentiment": None,
+        "last_keywords": None,
+        "last_quiz": None,
+        "last_style": None,
     }
     for k, v in defaults.items():
         if k not in st.session_state:
@@ -66,10 +70,11 @@ def reset_all():
     """Hapus semua input & riwayat untuk mulai dari awal lagi."""
     keys_to_clear = [
         "source_text_input", "file_uploader", "source_mode_radio",
-        "length_choice", "target_lang",
+        "length_choice", "target_lang", "quiz_count", "style_choice",
         "chat_history", "session_history",
         "total_input_tokens", "total_output_tokens",
         "last_summary", "last_translation",
+        "last_sentiment", "last_keywords", "last_quiz", "last_style",
     ]
     for k in keys_to_clear:
         st.session_state.pop(k, None)
@@ -293,11 +298,15 @@ with st.container(border=True):
 st.divider()
 
 # ============================================================
-# TABS: Ringkas | Terjemahkan | Tanya Jawab | Riwayat
+# TABS: Ringkas | Terjemahkan | Sentimen | Kata Kunci | Kuis | Gaya | Tanya Jawab | Riwayat
 # ============================================================
-tab_ringkas, tab_translate, tab_qa, tab_history = st.tabs(
-    ["📋 Ringkas", "🌐 Terjemahkan", "💬 Tanya Jawab", "🕘 Riwayat"]
-)
+(
+    tab_ringkas, tab_translate, tab_sentiment, tab_keywords,
+    tab_quiz, tab_style, tab_qa, tab_history,
+) = st.tabs([
+    "📋 Ringkas", "🌐 Terjemahkan", "🎭 Sentimen", "🔑 Kata Kunci",
+    "🧠 Kuis", "✍️ Gaya", "💬 Tanya Jawab", "🕘 Riwayat",
+])
 
 # ---------- TAB 1: RINGKAS ----------
 with tab_ringkas:
@@ -384,7 +393,169 @@ with tab_translate:
                 key="dl_translate",
             )
 
-# ---------- TAB 3: TANYA JAWAB ----------
+# ---------- TAB 3: ANALISIS SENTIMEN ----------
+with tab_sentiment:
+    st.caption("Deteksi nada/sentimen dari teks: positif, negatif, netral, atau campuran.")
+
+    if st.button("🎭 Analisis Sentimen", type="primary", use_container_width=True, key="btn_sentiment"):
+        if not api_key:
+            st.error("Masukkan API Key Gemini terlebih dahulu di sidebar.")
+        elif not source_text.strip():
+            st.warning("Masukkan/upload teks yang ingin dianalisis terlebih dahulu.")
+        else:
+            prompt = (
+                "Analisis sentimen/nada dari teks berikut, jawab dalam Bahasa Indonesia. Sertakan:\n"
+                "1. Label sentimen keseluruhan (Positif / Negatif / Netral / Campuran)\n"
+                "2. Tingkat keyakinan (Rendah/Sedang/Tinggi)\n"
+                "3. Penjelasan singkat alasannya\n"
+                "4. Satu kutipan singkat dari teks yang paling mendukung penilaian ini\n\n"
+                f"Teks:\n{source_text}"
+            )
+            try:
+                with st.spinner("Menganalisis sentimen..."):
+                    response = call_gemini(prompt, max_output_tokens=400)
+                cost = estimate_cost(response.usage_metadata.prompt_token_count, response.usage_metadata.candidates_token_count)
+                st.session_state.last_sentiment = {"text": response.text, "usage": response.usage_metadata, "cost": cost}
+                add_to_history("Analisis Sentimen", source_text, response.text, response.usage_metadata, cost)
+            except Exception as e:
+                handle_api_error(e)
+
+    if st.session_state.last_sentiment:
+        result = st.session_state.last_sentiment
+        with st.container(border=True):
+            st.subheader("🎭 Hasil Analisis Sentimen")
+            st.write(result["text"])
+            show_usage(result["usage"], result["cost"])
+            st.download_button(
+                "📥 Download Hasil (.txt)",
+                data=result["text"],
+                file_name=f"sentimen_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt",
+                mime="text/plain",
+                key="dl_sentiment",
+            )
+
+# ---------- TAB 4: EKSTRAK KATA KUNCI & TOPIK ----------
+with tab_keywords:
+    st.caption("Ambil kata kunci dan topik utama dari teks, cocok buat tag artikel atau SEO.")
+
+    if st.button("🔑 Ekstrak Kata Kunci", type="primary", use_container_width=True, key="btn_keywords"):
+        if not api_key:
+            st.error("Masukkan API Key Gemini terlebih dahulu di sidebar.")
+        elif not source_text.strip():
+            st.warning("Masukkan/upload teks yang ingin diekstrak terlebih dahulu.")
+        else:
+            prompt = (
+                "Dari teks berikut, jawab dalam Bahasa Indonesia dengan format ini:\n"
+                "1. **Topik Utama**: satu kalimat singkat tentang topik keseluruhan teks\n"
+                "2. **Kata Kunci** (5-10 kata/frasa, format bullet, urutkan dari paling relevan)\n"
+                "3. **Kategori**: 1-2 kata kategori umum yang paling cocok (misal: Teknologi, Kesehatan, Politik, dll)\n\n"
+                f"Teks:\n{source_text}"
+            )
+            try:
+                with st.spinner("Mengekstrak kata kunci..."):
+                    response = call_gemini(prompt, max_output_tokens=300)
+                cost = estimate_cost(response.usage_metadata.prompt_token_count, response.usage_metadata.candidates_token_count)
+                st.session_state.last_keywords = {"text": response.text, "usage": response.usage_metadata, "cost": cost}
+                add_to_history("Ekstrak Kata Kunci", source_text, response.text, response.usage_metadata, cost)
+            except Exception as e:
+                handle_api_error(e)
+
+    if st.session_state.last_keywords:
+        result = st.session_state.last_keywords
+        with st.container(border=True):
+            st.subheader("🔑 Kata Kunci & Topik")
+            st.write(result["text"])
+            show_usage(result["usage"], result["cost"])
+            st.download_button(
+                "📥 Download Hasil (.txt)",
+                data=result["text"],
+                file_name=f"kata_kunci_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt",
+                mime="text/plain",
+                key="dl_keywords",
+            )
+
+# ---------- TAB 5: BUAT KUIS DARI TEKS ----------
+with tab_quiz:
+    st.caption("Buat soal pilihan ganda otomatis dari isi teks, cocok untuk belajar/latihan.")
+    quiz_count = st.radio("Jumlah soal", [3, 5, 10], horizontal=True, index=1, key="quiz_count")
+
+    if st.button("🧠 Buat Kuis", type="primary", use_container_width=True, key="btn_quiz"):
+        if not api_key:
+            st.error("Masukkan API Key Gemini terlebih dahulu di sidebar.")
+        elif not source_text.strip():
+            st.warning("Masukkan/upload teks yang ingin dijadikan kuis terlebih dahulu.")
+        else:
+            prompt = (
+                f"Buat {quiz_count} soal pilihan ganda (4 opsi A-D) berdasarkan teks berikut, "
+                f"dalam Bahasa Indonesia. Variasikan tingkat kesulitan. Untuk setiap soal, tulis "
+                f"pertanyaan, lalu 4 opsi jawaban, lalu baris terakhir berisi 'Jawaban: X' "
+                f"(huruf opsi yang benar). Beri jarak antar soal.\n\nTeks:\n{source_text}"
+            )
+            try:
+                with st.spinner("Membuat soal kuis..."):
+                    response = call_gemini(prompt, max_output_tokens=int(quiz_count) * 150)
+                cost = estimate_cost(response.usage_metadata.prompt_token_count, response.usage_metadata.candidates_token_count)
+                st.session_state.last_quiz = {"text": response.text, "usage": response.usage_metadata, "cost": cost}
+                add_to_history("Buat Kuis", source_text, response.text, response.usage_metadata, cost)
+            except Exception as e:
+                handle_api_error(e)
+
+    if st.session_state.last_quiz:
+        result = st.session_state.last_quiz
+        with st.container(border=True):
+            st.subheader("🧠 Kuis dari Teks")
+            st.write(result["text"])
+            show_usage(result["usage"], result["cost"])
+            st.download_button(
+                "📥 Download Kuis (.txt)",
+                data=result["text"],
+                file_name=f"kuis_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt",
+                mime="text/plain",
+                key="dl_quiz",
+            )
+
+# ---------- TAB 6: UBAH GAYA PENULISAN ----------
+with tab_style:
+    st.caption("Tulis ulang teks dengan gaya bahasa yang berbeda, isi tetap sama.")
+    STYLE_OPTIONS = ["Formal", "Santai/Kasual", "Persuasif", "Naratif/Storytelling", "Akademis", "Jurnalistik"]
+    style_choice = st.selectbox("Pilih gaya penulisan", STYLE_OPTIONS, key="style_choice")
+
+    if st.button("✍️ Ubah Gaya Penulisan", type="primary", use_container_width=True, key="btn_style"):
+        if not api_key:
+            st.error("Masukkan API Key Gemini terlebih dahulu di sidebar.")
+        elif not source_text.strip():
+            st.warning("Masukkan/upload teks yang ingin ditulis ulang terlebih dahulu.")
+        else:
+            prompt = (
+                f"Tulis ulang teks berikut dengan gaya bahasa {style_choice}, dalam Bahasa Indonesia. "
+                f"Pertahankan semua informasi dan makna inti, hanya ubah gaya penyampaiannya:\n\n{source_text}"
+            )
+            try:
+                with st.spinner("Menulis ulang teks..."):
+                    response = call_gemini(prompt, max_output_tokens=1024)
+                cost = estimate_cost(response.usage_metadata.prompt_token_count, response.usage_metadata.candidates_token_count)
+                st.session_state.last_style = {
+                    "text": response.text, "usage": response.usage_metadata, "cost": cost, "style": style_choice,
+                }
+                add_to_history(f"Gaya: {style_choice}", source_text, response.text, response.usage_metadata, cost)
+            except Exception as e:
+                handle_api_error(e)
+
+    if st.session_state.last_style:
+        result = st.session_state.last_style
+        with st.container(border=True):
+            st.subheader(f"✍️ Hasil Gaya {result['style']}")
+            st.write(result["text"])
+            show_usage(result["usage"], result["cost"])
+            st.download_button(
+                "📥 Download Hasil (.txt)",
+                data=result["text"],
+                file_name=f"gaya_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt",
+                mime="text/plain",
+                key="dl_style",
+            )
+
+# ---------- TAB 7: TANYA JAWAB ----------
 with tab_qa:
     st.caption("Tanya apa saja tentang isi teks/dokumen yang sudah kamu masukkan di atas.")
 
@@ -441,7 +612,7 @@ with tab_qa:
             except Exception as e:
                 handle_api_error(e)
 
-# ---------- TAB 4: RIWAYAT ----------
+# ---------- TAB 8: RIWAYAT ----------
 with tab_history:
     st.caption("Semua hasil yang sudah dibuat di sesi ini (hilang kalau halaman di-refresh atau ditutup).")
 
@@ -463,7 +634,7 @@ with tab_history:
                 st.download_button(
                     "📥 Download",
                     data=item["output"],
-                    file_name=f"{item['kind'].split(' ')[0].lower()}_{i}.txt",
+                    file_name=f"{''.join(c for c in item['kind'].split(' ')[0] if c.isalnum()).lower() or 'riwayat'}_{i}.txt",
                     mime="text/plain",
                     key=f"dl_hist_{i}",
                 )
