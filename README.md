@@ -7,7 +7,12 @@ Aplikasi web untuk merangkum, menerjemahkan, dan tanya-jawab dengan teks/dokumen
 - 📋 **Ringkas** — rangkum teks panjang jadi poin-poin penting (Pendek/Sedang/Panjang)
 - 🌐 **Terjemahkan** — terjemahkan teks ke 9 bahasa pilihan
 - 💬 **Tanya Jawab** — chat dan tanya apa saja tentang isi dokumen
-- 📄 **Upload File** — bisa paste teks langsung atau upload PDF/DOCX/TXT
+- 🎭 **Analisis Sentimen** — deteksi nada teks (positif/negatif/netral/campuran) beserta alasannya
+- 🔑 **Ekstrak Kata Kunci & Topik** — ambil kata kunci dan topik utama, cocok buat tag artikel
+- 🧠 **Buat Kuis dari Teks** — generate soal pilihan ganda otomatis (3/5/10 soal) untuk belajar
+- ✍️ **Ubah Gaya Penulisan** — tulis ulang teks jadi Formal / Santai / Persuasif / Naratif / Akademis / Jurnalistik
+- 📄 **Upload File** — bisa paste teks langsung, atau upload PDF/DOCX/TXT, **atau foto** (JPG/PNG/WEBP)
+- 📸 **Baca Teks dari Foto** — upload foto artikel/koran/screenshot, Gemini langsung membaca teksnya (tanpa OCR lokal)
 - 📊 **Token & Cost Tracker** — info input/output/total token plus estimasi biaya (USD) di setiap respons
 - 🕘 **Riwayat Sesi** — semua hasil yang sudah dibuat tersimpan dalam satu tab, bisa dilihat ulang
 - 📥 **Download Hasil** — unduh ringkasan/terjemahan/riwayat chat sebagai file `.txt`
@@ -71,6 +76,8 @@ streamlit run app.py
 - Tab Tanya Jawab menjawab berdasarkan isi teks yang dimasukkan, bukan pengetahuan umum model
 - **Riwayat hanya tersimpan selama sesi browser aktif** (memakai `st.session_state`) — kalau refresh/tutup tab, riwayat akan hilang. Ini bukan database permanen.
 - **Estimasi biaya** dihitung manual dari harga resmi `gemini-2.5-flash-lite` ($0.10/1M token input, $0.40/1M token output per Juni 2026). Angka ini hanya estimasi kasar — cek billing asli di Google AI Studio untuk angka pasti, karena harga API bisa berubah dari waktu ke waktu.
+- **Upload foto** memakai 1 panggilan API tambahan (Gemini Vision) untuk membaca teksnya sebelum diproses lebih lanjut — token & estimasi biayanya juga ditampilkan dan masuk ke Riwayat.
+- **Tema warna** diatur lewat `.streamlit/config.toml` (palet indigo/slate). Pastikan folder `.streamlit` ikut di-upload ke GitHub (termasuk file ini, tapi JANGAN upload `secrets.toml` yang asli) supaya tampilannya konsisten di Streamlit Cloud.
 
 ## Mapping panjang ringkasan
 
