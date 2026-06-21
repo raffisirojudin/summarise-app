@@ -26,6 +26,34 @@ PRICE_OUTPUT_PER_M = 0.40
 
 
 # ============================================================
+# PROTEKSI PASSWORD (opsional -- aktif otomatis kalau APP_PASSWORD diisi di Secrets)
+# ============================================================
+def get_app_password():
+    try:
+        return st.secrets["APP_PASSWORD"]
+    except Exception:
+        return None
+
+
+_app_password = get_app_password()
+if _app_password:
+    if "authenticated" not in st.session_state:
+        st.session_state.authenticated = False
+
+    if not st.session_state.authenticated:
+        st.title("📝 SummaRise")
+        st.caption("🔒 Aplikasi ini dilindungi password.")
+        pwd_input = st.text_input("Masukkan password", type="password", key="app_password_gate")
+        if st.button("Masuk", type="primary"):
+            if pwd_input == _app_password:
+                st.session_state.authenticated = True
+                st.rerun()
+            else:
+                st.error("Password salah, coba lagi.")
+        st.stop()
+
+
+# ============================================================
 # HEADER
 # ============================================================
 st.title("📝 SummaRise")
