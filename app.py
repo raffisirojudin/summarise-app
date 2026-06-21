@@ -298,18 +298,17 @@ with st.container(border=True):
 st.divider()
 
 # ============================================================
-# TABS: Ringkas | Terjemahkan | Sentimen | Kata Kunci | Kuis | Gaya | Tanya Jawab | Riwayat
+# PILIH FITUR (dropdown -- lebih ringkas di layar HP dibanding tabs)
 # ============================================================
-(
-    tab_ringkas, tab_translate, tab_sentiment, tab_keywords,
-    tab_quiz, tab_style, tab_qa, tab_history,
-) = st.tabs([
+FEATURE_OPTIONS = [
     "📋 Ringkas", "🌐 Terjemahkan", "🎭 Sentimen", "🔑 Kata Kunci",
     "🧠 Kuis", "✍️ Gaya", "💬 Tanya Jawab", "🕘 Riwayat",
-])
+]
+selected_feature = st.selectbox("🧭 Pilih fitur", FEATURE_OPTIONS, key="feature_select")
+st.divider()
 
-# ---------- TAB 1: RINGKAS ----------
-with tab_ringkas:
+# ---------- FITUR: RINGKAS ----------
+if selected_feature == "📋 Ringkas":
     LENGTH_CONFIG = {
         "Pendek": {"max_tokens": 100, "poin": 3},
         "Sedang": {"max_tokens": 200, "poin": 5},
@@ -353,8 +352,8 @@ with tab_ringkas:
                 key="dl_ringkas",
             )
 
-# ---------- TAB 2: TERJEMAHKAN ----------
-with tab_translate:
+# ---------- FITUR: TERJEMAHKAN ----------
+elif selected_feature == "🌐 Terjemahkan":
     LANGUAGES = ["Inggris", "Indonesia", "Mandarin", "Jepang", "Arab", "Prancis", "Spanyol", "Jerman", "Korea"]
     target_lang = st.selectbox("Terjemahkan ke bahasa", LANGUAGES, key="target_lang")
 
@@ -393,8 +392,8 @@ with tab_translate:
                 key="dl_translate",
             )
 
-# ---------- TAB 3: ANALISIS SENTIMEN ----------
-with tab_sentiment:
+# ---------- FITUR: ANALISIS SENTIMEN ----------
+elif selected_feature == "🎭 Sentimen":
     st.caption("Deteksi nada/sentimen dari teks: positif, negatif, netral, atau campuran.")
 
     if st.button("🎭 Analisis Sentimen", type="primary", use_container_width=True, key="btn_sentiment"):
@@ -434,8 +433,8 @@ with tab_sentiment:
                 key="dl_sentiment",
             )
 
-# ---------- TAB 4: EKSTRAK KATA KUNCI & TOPIK ----------
-with tab_keywords:
+# ---------- FITUR: EKSTRAK KATA KUNCI & TOPIK ----------
+elif selected_feature == "🔑 Kata Kunci":
     st.caption("Ambil kata kunci dan topik utama dari teks, cocok buat tag artikel atau SEO.")
 
     if st.button("🔑 Ekstrak Kata Kunci", type="primary", use_container_width=True, key="btn_keywords"):
@@ -474,8 +473,8 @@ with tab_keywords:
                 key="dl_keywords",
             )
 
-# ---------- TAB 5: BUAT KUIS DARI TEKS ----------
-with tab_quiz:
+# ---------- FITUR: BUAT KUIS DARI TEKS ----------
+elif selected_feature == "🧠 Kuis":
     st.caption("Buat soal pilihan ganda otomatis dari isi teks, cocok untuk belajar/latihan.")
     quiz_count = st.radio("Jumlah soal", [3, 5, 10], horizontal=True, index=1, key="quiz_count")
 
@@ -514,8 +513,8 @@ with tab_quiz:
                 key="dl_quiz",
             )
 
-# ---------- TAB 6: UBAH GAYA PENULISAN ----------
-with tab_style:
+# ---------- FITUR: UBAH GAYA PENULISAN ----------
+elif selected_feature == "✍️ Gaya":
     st.caption("Tulis ulang teks dengan gaya bahasa yang berbeda, isi tetap sama.")
     STYLE_OPTIONS = ["Formal", "Santai/Kasual", "Persuasif", "Naratif/Storytelling", "Akademis", "Jurnalistik"]
     style_choice = st.selectbox("Pilih gaya penulisan", STYLE_OPTIONS, key="style_choice")
@@ -555,8 +554,8 @@ with tab_style:
                 key="dl_style",
             )
 
-# ---------- TAB 7: TANYA JAWAB ----------
-with tab_qa:
+# ---------- FITUR: TANYA JAWAB ----------
+elif selected_feature == "💬 Tanya Jawab":
     st.caption("Tanya apa saja tentang isi teks/dokumen yang sudah kamu masukkan di atas.")
 
     if st.session_state.chat_history:
@@ -612,8 +611,8 @@ with tab_qa:
             except Exception as e:
                 handle_api_error(e)
 
-# ---------- TAB 8: RIWAYAT ----------
-with tab_history:
+# ---------- FITUR: RIWAYAT ----------
+elif selected_feature == "🕘 Riwayat":
     st.caption("Semua hasil yang sudah dibuat di sesi ini (hilang kalau halaman di-refresh atau ditutup).")
 
     if not st.session_state.session_history:
