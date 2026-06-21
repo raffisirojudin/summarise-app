@@ -157,6 +157,28 @@ def extract_text(uploaded_file):
     return ""
 
 
+IMAGE_MIME_MAP = {
+    "jpg": "image/jpeg", "jpeg": "image/jpeg", "png": "image/png", "webp": "image/webp",
+}
+
+
+def extract_text_from_image(image_bytes, mime_type):
+    """Baca teks dari foto memakai kemampuan vision Gemini (tanpa OCR lokal)."""
+    client = genai.Client(api_key=api_key)
+    image_part = types.Part.from_bytes(data=image_bytes, mime_type=mime_type)
+    response = client.models.generate_content(
+        model=MODEL_NAME,
+        contents=[
+            image_part,
+            "Transkrip semua teks yang terlihat di foto ini secara lengkap dan akurat, "
+            "sesuai bahasa aslinya. Jangan menambahkan komentar, penjelasan, atau karakter "
+            "lain selain teks yang benar-benar ada di foto.",
+        ],
+        config=types.GenerateContentConfig(temperature=0.1, max_output_tokens=2048),
+    )
+    return response
+
+
 def add_to_history(kind, input_text, output_text, usage, cost):
     preview = input_text.strip().replace("\n", " ")
     preview = preview[:150] + ("..." if len(preview) > 150 else "")
@@ -227,11 +249,35 @@ with st.container(border=True):
         )
     else:
         uploaded_file = st.file_uploader(
-            "Upload file (PDF, DOCX, atau TXT)", type=["pdf", "docx", "txt"], key="file_uploader"
+            "Upload file (PDF, DOCX, TXT, atau Foto)",
+            type=["pdf", "docx", "txt", "jpg", "jpeg", "png", "webp"],
+            key="file_uploader",
         )
         if uploaded_file:
-            with st.spinner("Mengekstrak teks dari file..."):
-                source_text = extract_text(uploaded_file)
+            ext = uploaded_file.name.lower().split(".")[-1]
+
+            if ext in IMAGE_MIME_MAP:
+                st.image(uploaded_file, caption="Pratinjau foto", use_container_width=True)
+                if not api_key:
+                    st.warning("Masukkan API Key Gemini di sidebar dulu untuk membaca teks dari foto.")
+                else:
+                    try:
+                        with st.spinner("Membaca teks dari foto..."):
+                            image_bytes = uploaded_file.getvalue()
+                            ocr_response = extract_text_from_image(image_bytes, IMAGE_MIME_MAP[ext])
+                        source_text = ocr_response.text
+                        ocr_cost = estimate_cost(
+                            ocr_response.usage_metadata.prompt_token_count,
+                            ocr_response.usage_metadata.candidates_token_count,
+                        )
+                        show_usage(ocr_response.usage_metadata, ocr_cost)
+                        add_to_history("Baca Foto", uploaded_file.name, source_text, ocr_response.usage_metadata, ocr_cost)
+                    except Exception as e:
+                        handle_api_error(e)
+            else:
+                with st.spinner("Mengekstrak teks dari file..."):
+                    source_text = extract_text(uploaded_file)
+
             if source_text.strip():
                 with st.expander("👀 Lihat teks hasil ekstraksi"):
                     preview_text = source_text[:3000] + ("..." if len(source_text) > 3000 else "")
