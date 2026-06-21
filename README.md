@@ -4,6 +4,9 @@ Aplikasi web untuk merangkum, menerjemahkan, dan tanya-jawab dengan teks/dokumen
 
 ## Fitur
 
+- 🔒 **Proteksi Password (opsional)** — set `APP_PASSWORD` di Secrets, app akan minta password sebelum bisa dipakai
+- 📱 **Dropdown Pilih Fitur** — navigasi pakai dropdown (bukan tab), lebih ringkas di layar HP
+
 - 📋 **Ringkas** — rangkum teks panjang jadi poin-poin penting (Pendek/Sedang/Panjang)
 - 🌐 **Terjemahkan** — terjemahkan teks ke 9 bahasa pilihan
 - 💬 **Tanya Jawab** — chat dan tanya apa saja tentang isi dokumen
@@ -51,6 +54,19 @@ Supaya nggak perlu ketik API key setiap buka app:
 
 Kalau secret belum diisi, app tetap jalan normal — kolom API key manual di sidebar akan muncul seperti biasa.
 
+## 3b. Lindungi app dengan password (opsional, disarankan)
+
+Karena app yang di-deploy punya URL publik, siapapun yang punya link bisa memakainya (dan kuota API key kamu kalau pakai Secrets). Supaya cuma kamu yang bisa akses:
+
+1. Buka Settings → Secrets di Streamlit Cloud (sama seperti langkah di atas)
+2. Tambahkan baris:
+   ```toml
+   APP_PASSWORD = "password-rahasia-kamu"
+   ```
+3. Klik Save — app akan otomatis minta password ini sebelum bisa dipakai
+
+Kalau `APP_PASSWORD` tidak diisi di Secrets, app akan jalan seperti biasa tanpa proteksi (cocok untuk development lokal).
+
 ## 4. Jalankan aplikasi (lokal)
 
 ```bash
@@ -60,7 +76,7 @@ streamlit run app.py
 ## 5. Cara pakai
 
 1. Pilih sumber teks: **Paste Teks** atau **Upload File** (PDF/DOCX/TXT)
-2. Pilih tab sesuai kebutuhan:
+2. Pilih fitur dari dropdown sesuai kebutuhan:
    - **Ringkas** → pilih panjang ringkasan, klik "Rangkum Teks"
    - **Terjemahkan** → pilih bahasa tujuan, klik "Terjemahkan Teks"
    - **Tanya Jawab** → ketik pertanyaan tentang isi teks di kolom chat
@@ -77,6 +93,7 @@ streamlit run app.py
 - **Riwayat hanya tersimpan selama sesi browser aktif** (memakai `st.session_state`) — kalau refresh/tutup tab, riwayat akan hilang. Ini bukan database permanen.
 - **Estimasi biaya** dihitung manual dari harga resmi `gemini-2.5-flash-lite` ($0.10/1M token input, $0.40/1M token output per Juni 2026). Angka ini hanya estimasi kasar — cek billing asli di Google AI Studio untuk angka pasti, karena harga API bisa berubah dari waktu ke waktu.
 - **Upload foto** memakai 1 panggilan API tambahan (Gemini Vision) untuk membaca teksnya sebelum diproses lebih lanjut — token & estimasi biayanya juga ditampilkan dan masuk ke Riwayat.
+- **Versi library di-pin minimum** (`requirements.txt`) supaya nggak ada update mendadak yang merusak app tanpa kamu sadari.
 - **Tema warna** diatur lewat `.streamlit/config.toml` (palet indigo/slate). Pastikan folder `.streamlit` ikut di-upload ke GitHub (termasuk file ini, tapi JANGAN upload `secrets.toml` yang asli) supaya tampilannya konsisten di Streamlit Cloud.
 
 ## Mapping panjang ringkasan
